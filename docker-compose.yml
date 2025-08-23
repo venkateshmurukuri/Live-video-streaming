@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  nginx-rtmp:
+    image: tiangolo/nginx-rtmp
+    container_name: nginx-rtmp-server
+    ports:
+      - "1935:1935"  # RTMP port
+      - "8082:80"    # HTTP port for HLS
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./hls:/tmp/hls
+    restart: unless-stopped
+    networks:
+      - streaming-network
+
+networks:
+  streaming-network:
+    driver: bridge
