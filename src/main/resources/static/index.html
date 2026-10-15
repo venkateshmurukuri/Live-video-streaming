@@ -3,108 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Video Streaming Solution</title>
+    <title>Webcam to HLS</title>
     <link rel="stylesheet" href="css/player.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Live Video Streaming Solution</h1>
-            <p>Real-time video streaming with HLS support</p>
-        </header>
+<div class="container">
+    <header>
+        <h1>Webcam &rarr; RTMP &rarr; HLS</h1>
+        <p>FFmpeg capture, nginx-rtmp packaging, hls.js playback</p>
+    </header>
 
-        <!-- Stream Management Section -->
-        <div class="stream-controls">
-            <h2>Stream Management</h2>
-            <div class="control-panel">
-                <div class="input-group">
-                    <label for="webcamInput">Webcam Device:</label>
-                    <input type="text" id="webcamInput" value="HD Webcam" placeholder="Enter webcam device name">
-                </div>
-                <div class="input-group">
-                    <label for="rtmpDestination">RTMP Destination:</label>
-                    <input type="text" id="rtmpDestination" value="rtmp://localhost:1935/hls/test" placeholder="rtmp://localhost:1935/hls/stream-name">
-                </div>
-                <div class="button-group">
-                    <button id="startStreamBtn" class="btn btn-primary">Start Stream</button>
-                    <button id="stopStreamBtn" class="btn btn-danger" disabled>Stop Stream</button>
-                    <button id="refreshStatusBtn" class="btn btn-secondary">Refresh Status</button>
-                </div>
+    <section class="panel">
+        <h2>Stream</h2>
+        <div class="control-panel">
+            <div class="input-group">
+                <label for="device">Capture device</label>
+                <input type="text" id="device" placeholder="loading…">
+                <small id="deviceHint" class="hint"></small>
             </div>
-            
-            <!-- Stream Status -->
-            <div class="stream-status">
-                <h3>Stream Status</h3>
-                <div id="statusDisplay" class="status-card">
-                    <div class="status-item">
-                        <span class="label">Status:</span>
-                        <span id="streamStatus" class="value">Not Started</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="label">Stream ID:</span>
-                        <span id="streamId" class="value">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="label">Start Time:</span>
-                        <span id="startTime" class="value">-</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="label">Retry Count:</span>
-                        <span id="retryCount" class="value">-</span>
-                    </div>
-                </div>
+            <div class="input-group">
+                <label for="destination">RTMP destination</label>
+                <input type="text" id="destination" placeholder="rtmp://localhost:1935/hls/cam">
+                <small class="hint">The last path segment is the stream name the player fetches.</small>
+            </div>
+            <div class="button-group">
+                <button id="startBtn" class="btn btn-primary">Start stream</button>
+                <button id="stopBtn" class="btn btn-danger" disabled>Stop stream</button>
             </div>
         </div>
 
-        <!-- Video Player Section -->
-        <div class="video-section">
-            <h2>Live Stream Player</h2>
-            <div class="player-container">
-                <video 
-                    id="videoPlayer" 
-                    controls 
-                    preload="auto"
-                    width="640" 
-                    height="360">
-                    <p>
-                        To view this video please enable JavaScript, and consider upgrading to a
-                        web browser that supports HTML5 video.
-                    </p>
-                </video>
-            </div>
-            
-            <!-- Player Controls -->
-            <div class="player-controls">
-                <div class="control-group">
-                    <label for="playbackUrl">HLS Playback URL:</label>
-                    <input type="text" id="playbackUrl" value="http://localhost:8082/hls/test/index.m3u8" placeholder="http://localhost:8082/hls/stream-name/index.m3u8">
-                    <button id="loadStreamBtn" class="btn btn-success">Load Stream</button>
-                </div>
-                <div class="control-group">
-                    <button id="playBtn" class="btn btn-primary">Play</button>
-                    <button id="pauseBtn" class="btn btn-secondary">Pause</button>
-                    <button id="reloadBtn" class="btn btn-warning">Reload</button>
-                </div>
-            </div>
+        <h3>Status</h3>
+        <div class="status-card">
+            <div class="status-item"><span class="label">State</span><span id="state" class="value">&mdash;</span></div>
+            <div class="status-item"><span class="label">Stream ID</span><span id="streamId" class="value">&mdash;</span></div>
+            <div class="status-item"><span class="label">Started</span><span id="startedAt" class="value">&mdash;</span></div>
+            <div class="status-item"><span class="label">Retries</span><span id="retryCount" class="value">&mdash;</span></div>
+            <div class="status-item"><span class="label">Last error</span><span id="lastError" class="value">&mdash;</span></div>
         </div>
+    </section>
 
-        <!-- Logs Section -->
-        <div class="logs-section">
-            <h3>Application Logs</h3>
-            <div id="logContainer" class="log-container">
-                <div class="log-entry info">System initialized. Ready to start streaming.</div>
-            </div>
-            <button id="clearLogsBtn" class="btn btn-secondary">Clear Logs</button>
+    <section class="panel">
+        <h2>Player</h2>
+        <div class="player-container">
+            <video id="video" controls muted playsinline width="640" height="360"></video>
         </div>
-    </div>
+        <div class="control-group">
+            <label for="hlsUrl">HLS URL</label>
+            <input type="text" id="hlsUrl" placeholder="http://localhost:8082/hls/cam/index.m3u8">
+            <button id="loadBtn" class="btn btn-success">Load</button>
+        </div>
+    </section>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="loading-spinner"></div>
-        <p>Processing...</p>
-    </div>
+    <section class="panel">
+        <h3>Log</h3>
+        <div id="log" class="log-container"></div>
+        <button id="clearLogBtn" class="btn btn-secondary">Clear</button>
+    </section>
+</div>
 
-    <script src="js/player.js"></script>
+<script src="js/player.js"></script>
 </body>
 </html>
