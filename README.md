@@ -10,7 +10,7 @@ and a one-page UI to drive it.
 
 It runs on macOS, Linux and Windows, and has a `test` source so you can try it without a camera.
 
-<!-- ![Demo](docs/demo.gif) -->
+![Demo: start a stream, the player attaches a few seconds later](docs/demo.gif)
 
 ## Architecture
 
