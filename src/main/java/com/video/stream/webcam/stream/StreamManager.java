@@ -30,6 +30,7 @@ public class StreamManager {
 
     private static final int ERROR_CONTEXT_LINES = 5;
     private static final Duration STOP_GRACE = Duration.ofSeconds(5);
+    private static final Duration DRAIN_GRACE = Duration.ofSeconds(1);
     private static final long STOP_POLL_MS = 100;
 
     private final FFmpegCommandBuilder commands;
@@ -105,7 +106,8 @@ public class StreamManager {
             }
             session.setState(StreamState.RUNNING);
 
-            String tail = drain(session.id(), process);
+            OutputDrainer drainer = new OutputDrainer(session.id(), process);
+            drainer.start();
             int exitCode;
             try {
                 exitCode = process.waitFor();
@@ -116,6 +118,7 @@ public class StreamManager {
             } finally {
                 session.detach();
             }
+            String tail = drainer.tailAfter(DRAIN_GRACE);
             if (session.stopRequested()) {
                 break;
             }
@@ -143,26 +146,62 @@ public class StreamManager {
         session.setState(StreamState.STOPPED);
     }
 
-    /** Pumps FFmpeg's output until it exits; logs at debug and keeps the last few lines as error context. */
-    private String drain(UUID id, Process process) {
-        Deque<String> tail = new ArrayDeque<>(ERROR_CONTEXT_LINES);
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isBlank()) {
-                    continue;
-                }
-                log.debug("ffmpeg[{}] {}", id, line);
-                if (tail.size() == ERROR_CONTEXT_LINES) {
-                    tail.removeFirst();
-                }
-                tail.addLast(line);
-            }
-        } catch (IOException e) {
-            log.debug("ffmpeg[{}] output closed: {}", id, e.getMessage());
+    /**
+     * Pumps FFmpeg's output on its own thread, logging at debug and keeping the last few lines as error context.
+     * <p>
+     * The supervisor must not block on this pipe reaching EOF: on Linux a read stays blocked for as long as
+     * any process holds the write end, so a grandchild that outlives FFmpeg would stall stop() indefinitely.
+     * Process exit is the signal; the drainer only gets a short grace to hand over the tail.
+     */
+    private static final class OutputDrainer extends Thread {
+
+        private final UUID id;
+        private final Process process;
+        private final Deque<String> tail = new ArrayDeque<>(ERROR_CONTEXT_LINES);
+
+        OutputDrainer(UUID id, Process process) {
+            super("ffmpeg-out-" + id.toString().substring(0, 8));
+            this.id = id;
+            this.process = process;
+            setDaemon(true);
         }
-        return String.join(" | ", tail);
+
+        @Override
+        public void run() {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.isBlank()) {
+                        continue;
+                    }
+                    log.debug("ffmpeg[{}] {}", id, line);
+                    synchronized (tail) {
+                        if (tail.size() == ERROR_CONTEXT_LINES) {
+                            tail.removeFirst();
+                        }
+                        tail.addLast(line);
+                    }
+                }
+            } catch (IOException e) {
+                log.debug("ffmpeg[{}] output closed: {}", id, e.getMessage());
+            }
+        }
+
+        /** Waits up to {@code grace} for the pipe to close, then returns whatever was captured. */
+        String tailAfter(Duration grace) {
+            try {
+                join(grace.toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            if (isAlive()) {
+                log.debug("ffmpeg[{}] output pipe still open after exit; not waiting for it", id);
+            }
+            synchronized (tail) {
+                return String.join(" | ", tail);
+            }
+        }
     }
 
     /** SIGTERM lets FFmpeg flush and close the RTMP connection; SIGKILL only if it ignores that. */

@@ -76,6 +76,22 @@ class StreamManagerTest {
     }
 
     @Test
+    void stopDoesNotWaitForOrphanedChildrenHoldingTheOutputPipe() {
+        // the shell dies on SIGTERM but its background child keeps our stdout pipe open for 30 s
+        StreamManager manager = new StreamManager(commands, shell("sleep 30 & wait"),
+                new RetryPolicy(5, 10, 20, 60_000), executor);
+
+        StreamSession session = manager.start("test", "rtmp://localhost/hls/x");
+        awaitUntil(() -> session.state() == StreamState.RUNNING);
+
+        long startedAt = System.nanoTime();
+        StreamSession stopped = manager.stop(session.id());
+
+        assertThat(stopped.state()).isEqualTo(StreamState.STOPPED);
+        assertThat((System.nanoTime() - startedAt) / 1_000_000).isLessThan(3_000);
+    }
+
+    @Test
     void stopDuringBackoffDoesNotWaitForTheFullDelay() {
         StreamManager manager = new StreamManager(commands, shell("exit 1"),
                 new RetryPolicy(5, 60_000, 60_000, 60_000), executor);

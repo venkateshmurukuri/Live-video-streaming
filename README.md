@@ -142,7 +142,8 @@ Frame rate, resolution, bitrate and the retry schedule are `stream.*` properties
 - `FFmpegCommandBuilderTest`, `CaptureBackendTest`: the exact arguments per OS, device names with spaces, the `test` source.
 - `RetryPolicyTest`: backoff schedule, cap, overflow safety, retry budget.
 - `StreamManagerTest`: the supervisor against tiny shell scripts standing in for FFmpeg: relaunch-until-failed,
-  stop kills the process promptly, stop during backoff does not wait out the delay, a stable run resets the budget.
+  stop kills the process promptly, stop is not held up by an orphaned child keeping the output pipe open,
+  stop during backoff does not wait out the delay, a stable run resets the budget.
 - `StreamControllerTest`: HTTP contract with `@WebMvcTest`: 201/400/404 and problem-detail bodies.
 
 ## Project layout
