@@ -10,22 +10,25 @@
 	</parent>
 	<groupId>com.video.stream</groupId>
 	<artifactId>live-video-streaming</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<version>0.1.0</version>
 	<name>live-video-streaming</name>
-	<description>Live Video Streaming Solution - Capture webcam feed and stream to RTMP destinations with HLS playback support</description>
-	<url/>
+	<description>Webcam to HLS: FFmpeg capture pushed over RTMP to nginx-rtmp, supervised by a small Spring Boot service</description>
+	<url>https://github.com/venkateshmurukuri/Live-video-streaming</url>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT</name>
+			<url>https://opensource.org/licenses/MIT</url>
+		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<name>Venkateswarlu Murukuri</name>
+			<url>https://github.com/venkateshmurukuri</url>
+		</developer>
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<url>https://github.com/venkateshmurukuri/Live-video-streaming</url>
+		<connection>scm:git:https://github.com/venkateshmurukuri/Live-video-streaming.git</connection>
 	</scm>
 	<properties>
 		<java.version>21</java.version>
@@ -35,27 +38,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-devtools</artifactId>
-			<scope>runtime</scope>
-			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
